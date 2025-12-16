@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 
@@ -40,8 +41,8 @@ class _HomePageState extends State<HomePage> {
 
     await FlutterOverlayWindow.showOverlay(
       enableDrag: true,
-      width: 48,
-      height: 48,
+      width: 44,
+      height: 44,
       alignment: OverlayAlignment.centerRight,
       flag: OverlayFlag.defaultFlag,
       visibility: NotificationVisibility.visibilityPublic,
@@ -113,117 +114,114 @@ class FloatingOverlay extends StatefulWidget {
 class _FloatingOverlayState extends State<FloatingOverlay> {
   bool expanded = false;
   double volume = 0.5;
-  Timer? autoHideTimer;
+  Timer? autoHide;
 
   @override
   void initState() {
     super.initState();
-    FlutterVolumeController.getVolume()
-        .then((v) => setState(() => volume = v ?? 0.5));
+    FlutterVolumeController.getVolume(
+      stream: AudioStream.music,
+    ).then((v) => setState(() => volume = v ?? 0.5));
   }
 
-  void startAutoHideTimer() {
-    autoHideTimer?.cancel();
-    autoHideTimer = Timer(const Duration(seconds: 5), collapseAndSnap);
+  void startAutoHide() {
+    autoHide?.cancel();
+    autoHide = Timer(const Duration(seconds: 5), collapse);
   }
 
   @override
   Widget build(BuildContext context) {
-    return expanded ? expandedPanel() : collapsedBubble();
+    return expanded ? expandedPanel() : bubble();
   }
 
-  /// 🟠 TINY CHAT-HEAD STYLE BUTTON
-  Widget collapsedBubble() {
+  /// 🔵 TINY BUBBLE
+  Widget bubble() {
     return Material(
       color: Colors.transparent,
       child: Center(
         child: GestureDetector(
           onTap: () async {
-            await FlutterOverlayWindow.resizeOverlay(300, 240, false);
-            startAutoHideTimer();
+            await FlutterOverlayWindow.resizeOverlay(260, 420, false);
+            startAutoHide();
             setState(() => expanded = true);
           },
           child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
               color: Colors.deepOrange,
               shape: BoxShape.circle,
-              boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 8),
-              ],
             ),
-            child: const Icon(
-              Icons.volume_up,
-              size: 22,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.volume_up,
+                color: Colors.white, size: 20),
           ),
         ),
       ),
     );
   }
 
-  /// 🫧 GLASS-LIKE STATIC PANEL
+  /// 🫧 IMAGE-3 STYLE PANEL
   Widget expandedPanel() {
     return Material(
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Tap anywhere outside
           GestureDetector(
-            onTap: collapseAndSnap,
+            onTap: collapse,
             child: Container(color: Colors.transparent),
           ),
-
           Center(
             child: Container(
-              width: 300,
+              height: 380,
+              width: 240,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.92),
-                borderRadius: BorderRadius.circular(24),
+                color: Colors.white.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(28),
                 boxShadow: const [
                   BoxShadow(color: Colors.black26, blurRadius: 20),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Positioned(
+                    top: 30,
+                    child: Text(
+                      "${(volume * 100).round()}",
+                      style: TextStyle(
+                        fontSize: 160,
+                        fontWeight: FontWeight.w200,
+                        color: Colors.black.withOpacity(0.05),
+                      ),
+                    ),
+                  ),
+                  Column(
                     children: [
                       const Text(
-                        "Volume Control",
+                        "VOLUME",
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepOrange,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: collapseAndSnap,
-                        child: const Icon(Icons.close,
-                            color: Colors.deepOrange),
+                      const Spacer(),
+                      RotatedBox(
+                        quarterTurns: -1,
+                        child: Slider(
+                          min: 0,
+                          max: 1,
+                          value: volume,
+                          onChanged: (v) {
+                            HapticFeedback.lightImpact();
+                            startAutoHide();
+                            setState(() => volume = v);
+                            FlutterVolumeController.setVolume(v);
+                          },
+                        ),
                       ),
+                      const Spacer(),
                     ],
-                  ),
-                  const SizedBox(height: 20),
-                  Icon(Icons.volume_up,
-                      size: 36, color: Colors.deepOrange),
-                  const SizedBox(height: 10),
-                  Text(
-                    "${(volume * 100).round()}%",
-                    style: const TextStyle(
-                        fontSize: 26, fontWeight: FontWeight.bold),
-                  ),
-                  Slider(
-                    value: volume,
-                    onChanged: (v) {
-                      startAutoHideTimer();
-                      setState(() => volume = v);
-                      FlutterVolumeController.setVolume(v);
-                    },
                   ),
                 ],
               ),
@@ -234,13 +232,10 @@ class _FloatingOverlayState extends State<FloatingOverlay> {
     );
   }
 
-  /// 📍 COLLAPSE + SNAP TO EDGE
-  Future<void> collapseAndSnap() async {
-    autoHideTimer?.cancel();
-    await FlutterOverlayWindow.resizeOverlay(48, 48, true);
-    await FlutterOverlayWindow.updateOverlayAlignment(
-      OverlayAlignment.centerRight,
-    );
+  /// 📍 COLLAPSE
+  Future<void> collapse() async {
+    autoHide?.cancel();
+    await FlutterOverlayWindow.resizeOverlay(44, 44, true);
     setState(() => expanded = false);
   }
 }
