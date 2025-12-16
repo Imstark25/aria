@@ -6,9 +6,9 @@ void main() {
   runApp(const MyApp());
 }
 
-// =====================
-// MAIN APP - This is what runs when you tap the app icon
-// =====================
+/// =====================
+/// MAIN APP (Launcher UI)
+/// =====================
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -32,20 +32,16 @@ class _HomePageState extends State<HomePage> {
   bool running = false;
 
   Future<void> startOverlay() async {
-    // Step 1: Check if we have permission to show overlay
     final granted = await FlutterOverlayWindow.isPermissionGranted();
     if (!granted) {
       await FlutterOverlayWindow.requestPermission();
       return;
     }
 
-    // Step 2: Show the floating button overlay
     await FlutterOverlayWindow.showOverlay(
       enableDrag: true,
-      width: 300, // Wide enough for both small and expanded view
-      height: 300,
-      overlayTitle: "Volume Control",
-      overlayContent: "Floating volume button",
+      width: 70,
+      height: 70,
       alignment: OverlayAlignment.centerRight,
       flag: OverlayFlag.defaultFlag,
       visibility: NotificationVisibility.visibilityPublic,
@@ -68,40 +64,28 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.volume_up, size: 80, color: Colors.deepOrange),
-            const SizedBox(height: 20),
-            const Text(
-              "Floating Volume Control",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        child: ElevatedButton(
+          onPressed: running ? stopOverlay : startOverlay,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: running ? Colors.redAccent : Colors.deepOrange,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
             ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: running ? stopOverlay : startOverlay,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: running ? Colors.red : Colors.deepOrange,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: Text(
-                running ? "Stop Floating Button" : "Start Floating Button",
-                style: const TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-          ],
+          ),
+          child: Text(
+            running ? "Stop Floating Button" : "Start Floating Button",
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       ),
     );
   }
 }
 
-// =====================
-// OVERLAY ENTRY POINT - This runs in the overlay window
-// =====================
+/// =====================
+/// OVERLAY ENTRY POINT
+/// =====================
 @pragma("vm:entry-point")
 void overlayMain() {
   runApp(const OverlayApp());
@@ -114,60 +98,45 @@ class OverlayApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FloatingBubble(),
+      home: FloatingOverlay(),
     );
   }
 }
 
-// =====================
-// FLOATING BUBBLE - The draggable button and volume panel
-// =====================
-class FloatingBubble extends StatefulWidget {
-  const FloatingBubble({super.key});
+/// =====================
+/// FLOATING OVERLAY
+/// =====================
+class FloatingOverlay extends StatefulWidget {
+  const FloatingOverlay({super.key});
 
   @override
-  State<FloatingBubble> createState() => _FloatingBubbleState();
+  State<FloatingOverlay> createState() => _FloatingOverlayState();
 }
 
-class _FloatingBubbleState extends State<FloatingBubble> {
-  bool expanded = false; // Are we showing the volume panel?
-  double volume = 0.5; // Current volume level (0.0 to 1.0)
+class _FloatingOverlayState extends State<FloatingOverlay> {
+  bool expanded = false;
+  double volume = 0.5;
 
   @override
   void initState() {
     super.initState();
-    loadVolume();
-  }
-
-  // Load the current system volume
-  Future<void> loadVolume() async {
-    final v = await FlutterVolumeController.getVolume();
-    setState(() => volume = v ?? 0.5);
-  }
-
-  // Update the system volume
-  Future<void> setVolume(double v) async {
-    setState(() => volume = v);
-    await FlutterVolumeController.setVolume(v);
+    FlutterVolumeController.getVolume()
+        .then((v) => setState(() => volume = v ?? 0.5));
   }
 
   @override
   Widget build(BuildContext context) {
-    // Show expanded panel or collapsed button
-    return expanded ? buildExpandedPanel() : buildCollapsedButton();
+    return expanded ? expandedUI() : collapsedBubble();
   }
 
-  // Small circular button
-  Widget buildCollapsedButton() {
+  /// 🔵 COLLAPSED FLOATING BUTTON
+  Widget collapsedBubble() {
     return Material(
       color: Colors.transparent,
-      child: Container(
-        width: 300,
-        height: 300,
-        alignment: Alignment.center,
+      child: Center(
         child: GestureDetector(
-          onTap: () {
-            // When tapped, show the volume panel
+          onTap: () async {
+            await FlutterOverlayWindow.resizeOverlay(320, 360, true);
             setState(() => expanded = true);
           },
           child: Container(
@@ -179,15 +148,14 @@ class _FloatingBubbleState extends State<FloatingBubble> {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: 2,
+                  blurRadius: 12,
                 ),
               ],
             ),
             child: const Icon(
               Icons.volume_up,
               color: Colors.white,
-              size: 36,
+              size: 32,
             ),
           ),
         ),
@@ -195,33 +163,35 @@ class _FloatingBubbleState extends State<FloatingBubble> {
     );
   }
 
-  // Volume control panel
-  Widget buildExpandedPanel() {
+  /// 🟠 EXPANDED PANEL (tap outside to close)
+  Widget expandedUI() {
     return Material(
       color: Colors.transparent,
-      child: Container(
-        width: 300,
-        height: 300,
-        alignment: Alignment.center,
-        child: Container(
-          width: 280,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 15,
-              ),
-            ],
+      child: Stack(
+        children: [
+          // 👇 TAP ANYWHERE OUTSIDE → COLLAPSE + SNAP
+          GestureDetector(
+            onTap: collapseAndSnap,
+            child: Container(color: Colors.transparent),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Title
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+          // PANEL
+          Center(
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 15,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
                     "Volume Control",
@@ -231,57 +201,42 @@ class _FloatingBubbleState extends State<FloatingBubble> {
                       color: Colors.deepOrange,
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      // Close the panel, show button again
-                      setState(() => expanded = false);
+                  const SizedBox(height: 20),
+                  Icon(
+                    Icons.volume_up,
+                    size: 40,
+                    color: Colors.deepOrange.shade400,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "${(volume * 100).round()}%",
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Slider(
+                    value: volume,
+                    onChanged: (v) {
+                      setState(() => volume = v);
+                      FlutterVolumeController.setVolume(v);
                     },
-                    icon: const Icon(Icons.close),
-                    color: Colors.deepOrange,
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              
-              // Volume icon
-              const Icon(
-                Icons.volume_up,
-                size: 48,
-                color: Colors.deepOrange,
-              ),
-              const SizedBox(height: 10),
-              
-              // Volume percentage
-              Text(
-                "${(volume * 100).round()}%",
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepOrange,
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Volume slider
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: Colors.deepOrange,
-                  inactiveTrackColor: Colors.deepOrange.withOpacity(0.3),
-                  thumbColor: Colors.deepOrange,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-                  overlayColor: Colors.deepOrange.withOpacity(0.2),
-                ),
-                child: Slider(
-                  value: volume,
-                  min: 0.0,
-                  max: 1.0,
-                  onChanged: setVolume,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  /// 🔒 COLLAPSE + SNAP TO EDGE
+  Future<void> collapseAndSnap() async {
+    await FlutterOverlayWindow.resizeOverlay(70, 70, true);
+    await FlutterOverlayWindow.updateOverlayAlignment(
+      OverlayAlignment.centerRight,
+    );
+    setState(() => expanded = false);
   }
 }
