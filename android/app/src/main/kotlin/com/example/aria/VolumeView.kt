@@ -20,33 +20,48 @@ class VolumeView @JvmOverloads constructor(
     init {
         LayoutInflater.from(context).inflate(R.layout.volume_overlay, this, true)
 
-        val slider = findViewById<SeekBar>(R.id.volumeSlider)
-        val ghostText = findViewById<TextView>(R.id.ghost)
+        // --- Media Volume Setup ---
+        val sliderMedia = findViewById<SeekBar>(R.id.volumeSliderMedia)
+        val ghostMedia = findViewById<TextView>(R.id.ghostMedia)
         
-        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val maxMedia = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val currentMedia = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
 
-        slider.max = max
-        slider.progress = current
-        ghostText.text = "${(current * 100 / max)}%"
+        sliderMedia.max = maxMedia
+        sliderMedia.progress = currentMedia
+        ghostMedia.text = "${(currentMedia * 100 / maxMedia)}%"
 
-        slider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-
-            override fun onProgressChanged(
-                seekBar: SeekBar?, progress: Int, fromUser: Boolean
-            ) {
-                audioManager.setStreamVolume(
-                    AudioManager.STREAM_MUSIC,
-                    progress,
-                    0
-                )
-                if (max > 0) {
-                     ghostText.text = "${(progress * 100 / max)}%"
-                }
+        sliderMedia.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0)
+                if (maxMedia > 0) ghostMedia.text = "${(progress * 100 / maxMedia)}%"
             }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        // --- Call Volume Setup ---
+        val sliderCall = findViewById<SeekBar>(R.id.volumeSliderCall)
+        val ghostCall = findViewById<TextView>(R.id.ghostCall)
+        
+        val maxCall = audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL)
+        val currentCall = audioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+
+        sliderCall.max = maxCall
+        sliderCall.progress = currentCall
+        if (maxCall > 0) {
+             ghostCall.text = "${(currentCall * 100 / maxCall)}%"
+        } else {
+             ghostCall.text = "0%"
+        }
+
+        sliderCall.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, progress, 0)
+                if (maxCall > 0) ghostCall.text = "${(progress * 100 / maxCall)}%"
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
         // Touch outside -> close overlay (return to button)
