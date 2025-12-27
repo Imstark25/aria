@@ -39,6 +39,29 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   static const platform = MethodChannel('volume_overlay');
   bool running = false;
+  double _currentVolume = 0.5;
+  double _mediaVolume = 0.5;
+
+  @override
+  void initState() {
+    super.initState();
+    _initVolume();
+  }
+
+  Future<void> _initVolume() async {
+    try {
+      double? vol = await FlutterVolumeController.getVolume(stream: AudioStream.voiceCall);
+      double? mediaVol = await FlutterVolumeController.getVolume(stream: AudioStream.music);
+      if (vol != null || mediaVol != null) {
+        setState(() {
+          if (vol != null) _currentVolume = vol;
+           if (mediaVol != null) _mediaVolume = mediaVol;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error getting volume: $e");
+    }
+  }
 
   Future<void> startOverlay() async {
     // Check overlay permission using permission_handler
@@ -81,7 +104,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             const Text(
+            const Text(
               "Native Volume Overlay",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
@@ -94,7 +117,29 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(color: Colors.grey),
               ),
             ),
-             const SizedBox(height: 40),
+            const SizedBox(height: 40),
+            Text("Call Volume: ${(_currentVolume * 100).toInt()}%"),
+            Slider(
+              value: _currentVolume,
+              min: 0.0,
+              max: 1.0,
+              onChanged: (val) async {
+                setState(() => _currentVolume = val);
+                await FlutterVolumeController.setVolume(val, stream: AudioStream.voiceCall);
+              },
+            ),
+            const SizedBox(height: 20),
+            Text("Media Volume: ${(_mediaVolume * 100).toInt()}%"),
+            Slider(
+              value: _mediaVolume,
+              min: 0.0,
+              max: 1.0,
+              onChanged: (val) async {
+                setState(() => _mediaVolume = val);
+                await FlutterVolumeController.setVolume(val, stream: AudioStream.music);
+              },
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: running ? stopOverlay : startOverlay,
               style: ElevatedButton.styleFrom(
