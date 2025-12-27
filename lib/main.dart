@@ -4,12 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Note: Ensure you have permission_handler in pubspec.yaml for easy permission management
-// or use a MethodChannel to check, but permission_handler is standard.
-// If not present, I can use a simple intent to open settings or assume the user granted it.
-// The previous code used flutter_overlay_window which handled permissions.
-// Native overlay requires SYSTEM_ALERT_WINDOW.
-
 void main() {
   runApp(const MyApp());
 }
@@ -22,9 +16,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.deepPurple,
+        useMaterial3: true,
+        fontFamily: 'Roboto', 
+      ),
+      home: const HomePage(),
     );
   }
 }
@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
       if (vol != null || mediaVol != null) {
         setState(() {
           if (vol != null) _currentVolume = vol;
-           if (mediaVol != null) _mediaVolume = mediaVol;
+          if (mediaVol != null) _mediaVolume = mediaVol;
         });
       }
     } catch (e) {
@@ -69,8 +69,7 @@ class _HomePageState extends State<HomePage> {
     if (!status.isGranted) {
       status = await Permission.systemAlertWindow.request();
       if (!status.isGranted) {
-        print("Overlay permission denied");
-        // Optionally show a dialog or snackbar
+        debugPrint("Overlay permission denied");
         return;
       }
     }
@@ -79,7 +78,7 @@ class _HomePageState extends State<HomePage> {
       await platform.invokeMethod('showOverlay');
       setState(() => running = true);
     } on PlatformException catch (e) {
-      print("Failed to show overlay: '${e.message}'.");
+      debugPrint("Failed to show overlay: '${e.message}'.");
     }
   }
 
@@ -88,70 +87,230 @@ class _HomePageState extends State<HomePage> {
       await platform.invokeMethod('hideOverlay');
       setState(() => running = false);
     } on PlatformException catch (e) {
-      print("Failed to hide overlay: '${e.message}'.");
+      debugPrint("Failed to hide overlay: '${e.message}'.");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Volume Control"),
-        backgroundColor: Colors.deepOrange,
+        title: const Text("Volume Master"),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        titleTextStyle: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          letterSpacing: 1.2,
+        ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Native Volume Overlay",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SingleChildScrollView( // Added to prevent overflow on small screens
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 100), // Adjusted padding
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.center, // Center contents
+              children: [
+                const SizedBox(height: 20),
+                _buildInfoCard(),
+                const SizedBox(height: 30),
+                _buildVolumeCard(
+                  title: "Call Volume",
+                  icon: Icons.phone_in_talk,
+                  amount: _currentVolume,
+                  onChanged: (val) async {
+                    setState(() => _currentVolume = val);
+                    await FlutterVolumeController.setVolume(val, stream: AudioStream.voiceCall);
+                  },
+                  color: Colors.cyanAccent,
+                ),
+                const SizedBox(height: 20),
+                _buildVolumeCard(
+                  title: "Media Volume",
+                  icon: Icons.music_note_rounded,
+                  amount: _mediaVolume,
+                  onChanged: (val) async {
+                    setState(() => _mediaVolume = val);
+                    await FlutterVolumeController.setVolume(val, stream: AudioStream.music);
+                  },
+                  color: Colors.pinkAccent,
+                ),
+                const SizedBox(height: 50),
+                _buildFloatingActionButton(),
+                 const SizedBox(height: 50),
+              ],
             ),
-            const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32.0),
-              child: Text(
-                "Make sure 'Display over other apps' permission is granted for this app in Settings.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.layers_outlined, size: 40, color: Colors.white.withOpacity(0.8)),
+          const SizedBox(height: 10),
+          const Text(
+            "Native Overlay Control",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Enable 'Display over other apps' to use the floating bubble.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVolumeCard({
+    required String title,
+    required IconData icon,
+    required double amount,
+    required ValueChanged<double> onChanged,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
               ),
+              const SizedBox(width: 15),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                "${(amount * 100).toInt()}%",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: color,
+              inactiveTrackColor: Colors.white.withOpacity(0.1),
+              trackHeight: 6.0,
+              thumbColor: Colors.white,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10.0),
+              overlayColor: color.withOpacity(0.2),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 24.0),
             ),
-            const SizedBox(height: 40),
-            Text("Call Volume: ${(_currentVolume * 100).toInt()}%"),
-            Slider(
-              value: _currentVolume,
+            child: Slider(
+              value: amount,
               min: 0.0,
               max: 1.0,
-              onChanged: (val) async {
-                setState(() => _currentVolume = val);
-                await FlutterVolumeController.setVolume(val, stream: AudioStream.voiceCall);
-              },
+              onChanged: onChanged,
             ),
-            const SizedBox(height: 20),
-            Text("Media Volume: ${(_mediaVolume * 100).toInt()}%"),
-            Slider(
-              value: _mediaVolume,
-              min: 0.0,
-              max: 1.0,
-              onChanged: (val) async {
-                setState(() => _mediaVolume = val);
-                await FlutterVolumeController.setVolume(val, stream: AudioStream.music);
-              },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return Center(
+      child: GestureDetector(
+        onTap: running ? stopOverlay : startOverlay,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: running
+                  ? [Colors.redAccent, Colors.red]
+                  : [Colors.deepPurpleAccent, Colors.blueAccent],
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: running ? stopOverlay : startOverlay,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: running ? Colors.redAccent : Colors.deepOrange,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: (running ? Colors.red : Colors.blue).withOpacity(0.4),
+                blurRadius: 20,
+                spreadRadius: 2,
+                offset: const Offset(0, 8),
               ),
-              child: Text(
-                running ? "Stop Floating Button" : "Start Floating Button",
-                style: const TextStyle(color: Colors.white),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                running ? Icons.stop_circle_outlined : Icons.play_circle_fill,
+                color: Colors.white,
+                size: 28,
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Text(
+                running ? "Stop Button" : "Start Floating Button",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
