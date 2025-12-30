@@ -11,6 +11,11 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import kotlin.math.abs
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+
 class VolumeOverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
@@ -25,8 +30,15 @@ class VolumeOverlayService : Service() {
     private lateinit var overlayParams: WindowManager.LayoutParams
     private lateinit var removeParams: WindowManager.LayoutParams
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
     override fun onCreate() {
         super.onCreate()
+        
+        startForegroundServiceNotification()
+        
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         
         initParams()
@@ -34,6 +46,28 @@ class VolumeOverlayService : Service() {
         
         // Start by showing the button
         showFloatingButton()
+    }
+
+    private fun startForegroundServiceNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "volume_master_overlay"
+            val channelName = "Volume Overlay Service"
+            val channel = NotificationChannel(
+                channelId, 
+                channelName, 
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager?.createNotificationChannel(channel)
+
+            val notification = Notification.Builder(this, channelId)
+                .setContentTitle("Volume Master")
+                .setContentText("Overlay is running")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .build()
+
+            startForeground(1, notification)
+        }
     }
     
     private fun initParams() {
