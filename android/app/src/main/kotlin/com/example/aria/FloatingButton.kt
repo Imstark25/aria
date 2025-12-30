@@ -56,7 +56,14 @@ class FloatingButton @JvmOverloads constructor(
                     
                     if (abs(dx) > 10 || abs(dy) > 10) {
                         isDragging = true
-                        params.x = initialX + dx
+                        
+                        val isRight = (params.gravity and android.view.Gravity.RIGHT) == android.view.Gravity.RIGHT
+                        if (isRight) {
+                            params.x = initialX - dx
+                        } else {
+                            params.x = initialX + dx
+                        }
+                        
                         params.y = initialY + dy
                         windowManager.updateViewLayout(this, params)
                         onDragMove(event.rawX, event.rawY)

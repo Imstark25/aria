@@ -58,7 +58,7 @@ class VolumeOverlayService : Service() {
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         )
-        buttonParams.gravity = Gravity.TOP or Gravity.START
+        buttonParams.gravity = Gravity.TOP or Gravity.END
         buttonParams.x = 50
         buttonParams.y = 200
         
