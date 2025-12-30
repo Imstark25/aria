@@ -8,14 +8,44 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import kotlin.math.abs
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.View
+
 class FloatingButton @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
+    private var bubbleView: View? = null
+
     init {
         LayoutInflater.from(context).inflate(R.layout.floating_button, this, true)
+        bubbleView = findViewById(R.id.bubble_view)
+        startBreathingAnimation()
+    }
+
+    private fun startBreathingAnimation() {
+        bubbleView?.let { view ->
+            val scaleX = ObjectAnimator.ofFloat(view, "scaleX", 0.95f, 1.05f)
+            val scaleY = ObjectAnimator.ofFloat(view, "scaleY", 0.95f, 1.05f)
+            
+            scaleX.repeatCount = ValueAnimator.INFINITE
+            scaleX.repeatMode = ValueAnimator.REVERSE
+            scaleY.repeatCount = ValueAnimator.INFINITE
+            scaleY.repeatMode = ValueAnimator.REVERSE
+            
+            scaleX.duration = 1500
+            scaleY.duration = 1500
+            
+            val set = AnimatorSet()
+            set.interpolator = AccelerateDecelerateInterpolator()
+            set.playTogether(scaleX, scaleY)
+            set.start()
+        }
     }
 
     fun setupDragListener(
