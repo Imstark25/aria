@@ -21,10 +21,18 @@ class FloatingButton @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private var bubbleView: View? = null
+    private var btnScreenshot: View? = null
+    private var btnOpenOverlay: View? = null
+    private var iconMain: View? = null
+    private var isExpanded = false
 
     init {
         LayoutInflater.from(context).inflate(R.layout.floating_button, this, true)
         bubbleView = findViewById(R.id.bubble_view)
+        btnScreenshot = findViewById(R.id.btn_screenshot)
+        btnOpenOverlay = findViewById(R.id.btn_open_overlay)
+        iconMain = findViewById(R.id.icon_main)
+        
         startBreathingAnimation()
     }
 
@@ -51,7 +59,8 @@ class FloatingButton @JvmOverloads constructor(
     fun setupDragListener(
         params: WindowManager.LayoutParams, 
         windowManager: WindowManager, 
-        onClick: () -> Unit,
+        onOpenOverlay: () -> Unit,
+        onScreenshot: () -> Unit,
         onDragStart: () -> Unit,
         onDragEnd: (Float, Float) -> Unit,
         onDragMove: (Float, Float) -> Unit
@@ -75,7 +84,7 @@ class FloatingButton @JvmOverloads constructor(
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!isDragging) {
-                        onClick()
+                        toggleMenu()
                     }
                     onDragEnd(event.rawX, event.rawY)
                     true
@@ -103,5 +112,33 @@ class FloatingButton @JvmOverloads constructor(
                 else -> false
             }
         }
+
+        
+        // Setup internal click listeners
+        btnOpenOverlay?.setOnClickListener {
+            onOpenOverlay()
+            toggleMenu() // Close after action
+        }
+        
+        btnScreenshot?.setOnClickListener {
+            onScreenshot()
+            toggleMenu()
+        }
+    }
+
+    private fun toggleMenu() {
+        isExpanded = !isExpanded
+        val visibility = if (isExpanded) View.VISIBLE else View.GONE
+        
+        btnScreenshot?.visibility = visibility
+        btnOpenOverlay?.visibility = visibility
+        
+        // Rotate icon
+        val rotation = if (isExpanded) 0f else 45f // 45 is 'close', 0 is '+' or similar, but used icon is close rotated 45 (which looks like plus). Wait. 
+        // Icon src in XML is ic_close rotated 45. That is an 'X' rotated to '+'? No, ic_close is 'X'. 45 deg makes it '+'.
+        // So default (collapsed) = '+' (45deg). Expanded = 'X' (0deg).
+        // Let's assume standard behavior.
+        
+        iconMain?.animate()?.rotation(if (isExpanded) 0f else 45f)?.setDuration(200)?.start()
     }
 }

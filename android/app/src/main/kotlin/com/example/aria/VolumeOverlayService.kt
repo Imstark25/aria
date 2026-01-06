@@ -1,4 +1,5 @@
 package com.example.aria
+import android.app.Activity
 
 import android.app.Service
 import android.content.Intent
@@ -11,10 +12,26 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import kotlin.math.abs
 
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.Image
+import android.media.ImageReader
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
+import android.graphics.Bitmap
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.os.Build
+import android.widget.Toast
 
 class VolumeOverlayService : Service() {
 
@@ -31,7 +48,115 @@ class VolumeOverlayService : Service() {
     private lateinit var removeParams: WindowManager.LayoutParams
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "ACTION_SCREENSHOT_PERMISSION_GRANTED") {
+             val resultCode = intent.getIntExtra("resultCode", 0)
+             val data = intent.getParcelableExtra<Intent>("data")
+             
+             if (resultCode == Activity.RESULT_OK && data != null) {
+                 // Wait a tiny bit more for the button to disappear completely if waiting for anim
+                 Handler(Looper.getMainLooper()).postDelayed({
+                     startCapture(resultCode, data)
+                 }, 300)
+             }
+        }
         return START_STICKY
+    }
+
+    private fun startCapture(resultCode: Int, data: Intent) {
+         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+         val metrics = resources.displayMetrics
+         
+         val screenWidth = metrics.widthPixels
+         val screenHeight = metrics.heightPixels
+         val screenDensity = metrics.densityDpi
+         
+         val mediaProjection = projectionManager.getMediaProjection(resultCode, data)
+         val imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
+         
+         val flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
+         val virtualDisplay = mediaProjection.createVirtualDisplay(
+             "ScreenCapture",
+             screenWidth,
+             screenHeight,
+             screenDensity,
+             flags,
+             imageReader.surface,
+             null,
+             null
+         )
+         
+         imageReader.setOnImageAvailableListener({ reader ->
+             // Trigger only once
+             reader.setOnImageAvailableListener(null, null)
+             
+             var image: Image? = null
+             try {
+                 image = reader.acquireLatestImage()
+                 if (image != null) {
+                     val planes = image.planes
+                     val buffer = planes[0].buffer
+                     val pixelStride = planes[0].pixelStride
+                     val rowStride = planes[0].rowStride
+                     val rowPadding = rowStride - pixelStride * screenWidth
+                     
+                     // Create bitmap
+                     val bitmap = Bitmap.createBitmap(
+                         screenWidth + rowPadding / pixelStride,
+                         screenHeight,
+                         Bitmap.Config.ARGB_8888
+                     )
+                     bitmap.copyPixelsFromBuffer(buffer)
+                     
+                     // Crop if there is padding
+                     val finalBitmap = if (rowPadding == 0) {
+                        bitmap
+                     } else {
+                        Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight)
+                     }
+                     
+                     saveScreenshot(finalBitmap)
+                 }
+             } catch (e: Exception) {
+                 e.printStackTrace()
+                 Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(this, "Capture Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                 }
+             } finally {
+                 image?.close()
+                 virtualDisplay?.release()
+                 mediaProjection?.stop()
+                 imageReader.close()
+
+                 // Show button back
+                 Handler(Looper.getMainLooper()).post {
+                     showFloatingButton()
+                 }
+             }
+             
+         }, Handler(Looper.getMainLooper()))
+    }
+
+    private fun saveScreenshot(bitmap: Bitmap) {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "Screenshot_$timeStamp.png"
+        
+        val contentValues = android.content.ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/VolumeMaster")
+        }
+        
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        if (uri != null) {
+            contentResolver.openOutputStream(uri).use { stream ->
+                if (stream != null) {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                     Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(this, "Screenshot Saved!", Toast.LENGTH_SHORT).show()
+                     }
+                }
+            }
+        }
     }
 
     override fun onCreate() {
@@ -127,7 +252,8 @@ class VolumeOverlayService : Service() {
             floatingButton?.setupDragListener(
                 buttonParams, 
                 windowManager, 
-                onClick = { showOverlay() },
+                onOpenOverlay = { showOverlay() },
+                onScreenshot = { takeScreenshot() },
                 onDragStart = {
                     removeView?.visibility = View.VISIBLE
                 },
@@ -170,6 +296,21 @@ class VolumeOverlayService : Service() {
             overlayParams.y = buttonParams.y
             windowManager.addView(overlayView, overlayParams)
         }
+    }
+
+    private fun takeScreenshot() {
+        // Hide button
+        if (floatingButton != null) {
+            floatingButton?.visibility = View.GONE
+        }
+        
+        // Start Permission Activity
+        val intent = Intent(this, ScreenshotActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+        
+        // Listener for when to show button back is handled via onStartCommand or BroadcastReceiver.
+        // For simplicity, we used startService with intent in Activity.
     }
 
     override fun onDestroy() {
