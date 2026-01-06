@@ -45,22 +45,22 @@
     </FrameLayout>
 
     <!-- Main Toggle Button -->
-    <FrameLayout
+    <androidx.cardview.widget.CardView
         android:id="@+id/bubble_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_floating_button"
-        android:padding="12dp"
-        android:elevation="8dp">
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        app:cardCornerRadius="30dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
 
         <ImageView
             android:id="@+id/icon_main"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_close"
-            android:rotation="45"
-            android:contentDescription="Main Control"
-            android:tint="#FFFFFF" />
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/floating_logo"
+            android:scaleType="centerCrop"
+            android:contentDescription="Main Control" />
             
-    </FrameLayout>
+    </androidx.cardview.widget.CardView>
 </LinearLayout>

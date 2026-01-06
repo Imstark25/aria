@@ -139,6 +139,6 @@ class FloatingButton @JvmOverloads constructor(
         // So default (collapsed) = '+' (45deg). Expanded = 'X' (0deg).
         // Let's assume standard behavior.
         
-        iconMain?.animate()?.rotation(if (isExpanded) 0f else 45f)?.setDuration(200)?.start()
+        iconMain?.animate()?.rotation(if (isExpanded) 180f else 0f)?.setDuration(300)?.start()
     }
 }
