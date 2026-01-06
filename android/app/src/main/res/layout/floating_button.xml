@@ -14,16 +14,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_floating_button"
-        android:padding="16dp"
+        android:padding="10dp"
         android:visibility="gone"
         android:elevation="6dp"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="12dp">
         <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_screenshot"
             android:contentDescription="Screenshot"
-            android:tint="#546E7A" />
+            android:tint="#FFFFFF" />
     </FrameLayout>
 
     <!-- Volume Button (Open Overlay) -->
@@ -32,16 +32,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_floating_button"
-        android:padding="16dp"
+        android:padding="10dp"
         android:visibility="gone"
         android:elevation="6dp"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="12dp">
         <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_volume_up"
             android:contentDescription="Open Overlay"
-            android:tint="#546E7A" />
+            android:tint="#FFFFFF" />
     </FrameLayout>
 
     <!-- Main Toggle Button -->
@@ -50,17 +50,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_floating_button"
-        android:padding="20dp"
+        android:padding="12dp"
         android:elevation="8dp">
 
         <ImageView
             android:id="@+id/icon_main"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/ic_close"
             android:rotation="45"
             android:contentDescription="Main Control"
-            android:tint="#546E7A" />
+            android:tint="#FFFFFF" />
             
     </FrameLayout>
 </LinearLayout>

@@ -32,6 +32,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.widget.Toast
+import android.content.Context
 
 class VolumeOverlayService : Service() {
 
@@ -74,7 +75,7 @@ class VolumeOverlayService : Service() {
          val imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
          
          val flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
-         val virtualDisplay = mediaProjection.createVirtualDisplay(
+         val virtualDisplay = mediaProjection?.createVirtualDisplay(
              "ScreenCapture",
              screenWidth,
              screenHeight,
@@ -269,6 +270,8 @@ class VolumeOverlayService : Service() {
             )
             
             windowManager.addView(floatingButton, buttonParams)
+        } else {
+            floatingButton?.visibility = View.VISIBLE
         }
     }
     
