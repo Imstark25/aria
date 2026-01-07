@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Subscription</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <div class="badge">MOST POPULAR</div>
+            <h1>Premium Plan</h1>
+            <div class="price">₹500<span>/month</span></div>
+            <ul class="features">
+                <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Unlimited Access</li>
+                <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 4K Streaming</li>
+                <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Ad-free Experience</li>
+                <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Offline Downloads</li>
+            </ul>
+            <button id="subscribe-btn" onclick="subscribe()">Subscribe Now</button>
+            <p class="terms">Cancel anytime. Terms apply.</p>
+        </div>
+    </div>
+
+    <script>
+        async function subscribe() {
+            const btn = document.getElementById('subscribe-btn');
+            const originalText = btn.innerText;
+            btn.innerText = 'Processing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/create-subscription', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error creating subscription: ' + data.error);
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                const options = {
+                    "key": data.key_id,
+                    "subscription_id": data.subscription_id,
+                    "name": "Demo App",
+                    "description": "Monthly Premium Subscription",
+                    "image": "https://cdn.razorpay.com/logos/GhRQcyean79PqE_medium.png",
+                    "handler": function (response){
+                        alert("Payment Successful!\nPayment ID: " + response.razorpay_payment_id + "\nSubscription ID: " + response.razorpay_subscription_id);
+                        // Here you would verify the signature on the backend
+                    },
+                    "theme": {
+                        "color": "#FF6B6B"
+                    }
+                };
+
+                const rzp1 = new Razorpay(options);
+                rzp1.open();
+                
+                rzp1.on('payment.failed', function (response){
+                    alert("Payment Failed: " + response.error.description);
+                });
+
+            } catch (error) {
+                console.error(error);
+                alert('Something went wrong!');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

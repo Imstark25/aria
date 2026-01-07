@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:aria/subscription_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -186,6 +187,20 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 50),
                   _buildFloatingActionButton(),
+                  const SizedBox(height: 30),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()));
+                      },
+                      icon: const Icon(Icons.star, color: Color(0xFFFF6B6B)),
+                      label: const Text("Go Premium", style: TextStyle(color: Colors.white)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: const Color(0xFFFF6B6B).withOpacity(0.5)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 50),
                 ],
               ),
