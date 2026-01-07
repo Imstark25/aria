@@ -45,7 +45,11 @@ app.post('/create-subscription', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+    res.send('Razorpay Server is Running');
+});
+
 const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
