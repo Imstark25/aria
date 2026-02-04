@@ -193,24 +193,26 @@ class VolumeOverlayService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         )
         overlayParams.gravity = Gravity.TOP or Gravity.END
         overlayParams.x = 20
 
-        // Button Params (Top-Left init, draggable)
+        // Button Params (Top-Right init, draggable) - Optimized
         buttonParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         )
         buttonParams.gravity = Gravity.TOP or Gravity.END
-        buttonParams.x = 50
-        buttonParams.y = 200
+        buttonParams.x = 30
+        buttonParams.y = 150
         
         // Remove View Params (Bottom Center)
         removeParams = WindowManager.LayoutParams(
@@ -218,7 +220,8 @@ class VolumeOverlayService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
             PixelFormat.TRANSLUCENT
         )
         removeParams.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -250,11 +253,12 @@ class VolumeOverlayService : Service() {
                 onDragEnd = { rawX, rawY ->
                     removeView?.visibility = View.GONE
                     if (isOverRemoveView(rawX, rawY)) {
+                        floatingButton?.cleanup()
                         stopSelf()
                     }
                 },
-                onDragMove = { rawX, rawY ->
-                    // Optional: Scale remove view if close?
+                onDragMove = { _, _ ->
+                    // Minimal operations during drag for performance
                 }
             )
             
@@ -279,6 +283,7 @@ class VolumeOverlayService : Service() {
 
     fun showOverlay() {
         if (floatingButton != null) {
+            floatingButton?.cleanup()
             try { windowManager.removeView(floatingButton) } catch (e: Exception) { e.printStackTrace() }
             floatingButton = null
         }
@@ -307,6 +312,7 @@ class VolumeOverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        floatingButton?.cleanup()
         if (overlayView != null) windowManager.removeView(overlayView)
         if (floatingButton != null) windowManager.removeView(floatingButton)
         if (removeView != null) windowManager.removeView(removeView)

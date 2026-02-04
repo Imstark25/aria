@@ -4,15 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:aria/subscription_page.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-/// =====================
-/// MAIN APP
-/// =====================
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -43,6 +39,7 @@ class _HomePageState extends State<HomePage> {
   bool running = false;
   double _currentVolume = 0.5;
   double _mediaVolume = 0.5;
+  double _ringVolume = 0.5;
 
   @override
   void initState() {
@@ -54,12 +51,13 @@ class _HomePageState extends State<HomePage> {
     try {
       double? vol = await FlutterVolumeController.getVolume(stream: AudioStream.voiceCall);
       double? mediaVol = await FlutterVolumeController.getVolume(stream: AudioStream.music);
-      if (vol != null || mediaVol != null) {
-        setState(() {
-          if (vol != null) _currentVolume = vol;
-          if (mediaVol != null) _mediaVolume = mediaVol;
-        });
-      }
+      double? ringVol = await FlutterVolumeController.getVolume(stream: AudioStream.ring);
+      
+      setState(() {
+        if (vol != null) _currentVolume = vol;
+        if (mediaVol != null) _mediaVolume = mediaVol;
+        if (ringVol != null) _ringVolume = ringVol;
+      });
     } catch (e) {
       debugPrint("Error getting volume: $e");
     }
@@ -94,119 +92,135 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text("Volume Master"),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        titleTextStyle: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          letterSpacing: 1.2,
-        ),
-      ),
-      body: Stack(
-        children: [
-          // 1. Background Image
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/background.jpg"),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Container(
-              color: Colors.black.withOpacity(0.2), // Slight overlay for legibility
+      body: SafeArea(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF1a1a2e),
+                Color(0xFF16213e),
+                Color(0xFF0f3460),
+              ],
             ),
           ),
-
-          // 2. Main Content with Glass Effect
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 120),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                   _buildGlassCard(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.05,
+                      vertical: 20,
+                    ),
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                         Icon(Icons.layers_outlined, size: 40, color: Colors.white.withOpacity(0.9)),
-                         const SizedBox(height: 10),
-                         const Text(
-                           "Native Overlay Control",
-                           style: TextStyle(
-                             fontSize: 20,
-                             fontWeight: FontWeight.w600,
-                             color: Colors.white,
-                           ),
-                         ),
-                         const SizedBox(height: 8),
-                         Text(
-                           "Enable 'Display over other apps' to use the floating bubble.",
-                           textAlign: TextAlign.center,
-                           style: TextStyle(
-                             fontSize: 14,
-                             color: Colors.white.withOpacity(0.7),
-                           ),
-                         ),
+                        SizedBox(height: screenHeight * 0.02),
+                        
+                        // Title Card
+                        _buildGlassCard(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.volume_up_rounded,
+                                size: isSmallScreen ? 50 : 60,
+                                color: Colors.cyanAccent,
+                              ),
+                              const SizedBox(height: 15),
+                              Text(
+                                "Volume Master",
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 20 : 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Control your device volume with ease",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 13 : 14,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        SizedBox(height: screenHeight * 0.03),
+                        
+                        // Call Volume
+                        _buildGlassVolumeCard(
+                          title: "Call Volume",
+                          icon: Icons.phone_in_talk,
+                          amount: _currentVolume,
+                          color: Colors.cyanAccent,
+                          isSmallScreen: isSmallScreen,
+                          onChanged: (val) async {
+                            setState(() => _currentVolume = val);
+                            await FlutterVolumeController.setVolume(val, stream: AudioStream.voiceCall);
+                          }
+                        ),
+                        
+                        SizedBox(height: screenHeight * 0.025),
+                        
+                        // Media Volume
+                        _buildGlassVolumeCard(
+                          title: "Media Volume",
+                          icon: Icons.music_note_rounded,
+                          amount: _mediaVolume,
+                          color: Colors.pinkAccent,
+                          isSmallScreen: isSmallScreen,
+                          onChanged: (val) async {
+                            setState(() => _mediaVolume = val);
+                            await FlutterVolumeController.setVolume(val, stream: AudioStream.music);
+                          }
+                        ),
+                        
+                        SizedBox(height: screenHeight * 0.025),
+                        
+                        // Ring Volume
+                        _buildGlassVolumeCard(
+                          title: "Ring Volume",
+                          icon: Icons.notifications_active,
+                          amount: _ringVolume,
+                          color: Colors.orangeAccent,
+                          isSmallScreen: isSmallScreen,
+                          onChanged: (val) async {
+                            setState(() => _ringVolume = val);
+                            await FlutterVolumeController.setVolume(val, stream: AudioStream.ring);
+                          }
+                        ),
+
+                        SizedBox(height: screenHeight * 0.04),
+                        
+                        // Floating Button Control
+                        _buildFloatingActionButton(isSmallScreen),
+                        
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  
-                  // Call Volume
-                  _buildGlassVolumeCard(
-                    title: "Call Volume",
-                    icon: Icons.phone_in_talk,
-                    amount: _currentVolume,
-                    color: Colors.cyanAccent,
-                    onChanged: (val) async {
-                       setState(() => _currentVolume = val);
-                       await FlutterVolumeController.setVolume(val, stream: AudioStream.voiceCall);
-                    }
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Media Volume
-                  _buildGlassVolumeCard(
-                    title: "Media Volume",
-                    icon: Icons.music_note_rounded,
-                    amount: _mediaVolume,
-                    color: Colors.pinkAccent,
-                    onChanged: (val) async {
-                      setState(() => _mediaVolume = val);
-                      await FlutterVolumeController.setVolume(val, stream: AudioStream.music);
-                    }
-                  ),
-
-                  const SizedBox(height: 50),
-                  _buildFloatingActionButton(),
-                  const SizedBox(height: 30),
-                  Center(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()));
-                      },
-                      icon: const Icon(Icons.star, color: Color(0xFFFF6B6B)),
-                      label: const Text("Go Premium", style: TextStyle(color: Colors.white)),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: const Color(0xFFFF6B6B).withOpacity(0.5)),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
-        ],
+        ),
       ),
     );
   }
@@ -235,15 +249,19 @@ class _HomePageState extends State<HomePage> {
     required double amount,
     required ValueChanged<double> onChanged,
     required Color color,
+    required bool isSmallScreen,
   }) {
     return _buildGlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 16 : 20,
+        vertical: isSmallScreen ? 20 : 25,
+      ),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.2),
                   shape: BoxShape.circle,
@@ -255,22 +273,23 @@ class _HomePageState extends State<HomePage> {
                     )
                   ],
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: isSmallScreen ? 20 : 24),
               ),
-              const SizedBox(width: 15),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+              SizedBox(width: isSmallScreen ? 12 : 15),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 16 : 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-              const Spacer(),
               Text(
                 "${(amount * 100).toInt()}%",
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: isSmallScreen ? 16 : 18,
                   fontWeight: FontWeight.bold,
                   color: color,
                   shadows: [
@@ -280,16 +299,20 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-          const SizedBox(height: 25),
+          SizedBox(height: isSmallScreen ? 20 : 25),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: color,
               inactiveTrackColor: Colors.white.withOpacity(0.1),
-              trackHeight: 6.0,
+              trackHeight: isSmallScreen ? 5.0 : 6.0,
               thumbColor: Colors.white,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10.0),
+              thumbShape: RoundSliderThumbShape(
+                enabledThumbRadius: isSmallScreen ? 8.0 : 10.0,
+              ),
               overlayColor: color.withOpacity(0.2),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 24.0),
+              overlayShape: RoundSliderOverlayShape(
+                overlayRadius: isSmallScreen ? 20.0 : 24.0,
+              ),
             ),
             child: Slider(
               value: amount,
@@ -303,7 +326,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
   
-  Widget _buildFloatingActionButton() {
+  Widget _buildFloatingActionButton(bool isSmallScreen) {
     return Center(
       child: GestureDetector(
         onTap: running ? stopOverlay : startOverlay,
@@ -314,12 +337,15 @@ class _HomePageState extends State<HomePage> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 30 : 40,
+                vertical: isSmallScreen ? 12 : 15,
+              ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: running
-                      ? [const Color(0xFFFF512F).withOpacity(0.9), const Color(0xFFDD2476).withOpacity(0.9)] // Reddish
-                      : [const Color(0xFF4776E6).withOpacity(0.9), const Color(0xFF8E54E9).withOpacity(0.9)], // Bluish
+                      ? [const Color(0xFFFF512F).withOpacity(0.9), const Color(0xFFDD2476).withOpacity(0.9)]
+                      : [const Color(0xFF4776E6).withOpacity(0.9), const Color(0xFF8E54E9).withOpacity(0.9)],
                 ),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: Colors.white.withOpacity(0.2)),
@@ -338,14 +364,14 @@ class _HomePageState extends State<HomePage> {
                   Icon(
                     running ? Icons.stop_circle_outlined : Icons.play_circle_fill,
                     color: Colors.white,
-                    size: 28,
+                    size: isSmallScreen ? 24 : 28,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: isSmallScreen ? 10 : 12),
                   Text(
-                    running ? "Stop Button" : "Start Floating Button",
-                    style: const TextStyle(
+                    running ? "Stop Floating Button" : "Start Floating Button",
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: isSmallScreen ? 14 : 16,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
