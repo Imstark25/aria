@@ -21,7 +21,6 @@ class FloatingButton @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private var bubbleView: View? = null
-    private var btnScreenshot: View? = null
     private var btnOpenOverlay: View? = null
     private var iconMain: View? = null
     private var isExpanded = false
@@ -29,7 +28,6 @@ class FloatingButton @JvmOverloads constructor(
     init {
         LayoutInflater.from(context).inflate(R.layout.floating_button, this, true)
         bubbleView = findViewById(R.id.bubble_view)
-        btnScreenshot = findViewById(R.id.btn_screenshot)
         btnOpenOverlay = findViewById(R.id.btn_open_overlay)
         iconMain = findViewById(R.id.icon_main)
         
@@ -60,7 +58,6 @@ class FloatingButton @JvmOverloads constructor(
         params: WindowManager.LayoutParams, 
         windowManager: WindowManager, 
         onOpenOverlay: () -> Unit,
-        onScreenshot: () -> Unit,
         onDragStart: () -> Unit,
         onDragEnd: (Float, Float) -> Unit,
         onDragMove: (Float, Float) -> Unit
@@ -119,18 +116,12 @@ class FloatingButton @JvmOverloads constructor(
             onOpenOverlay()
             toggleMenu() // Close after action
         }
-        
-        btnScreenshot?.setOnClickListener {
-            onScreenshot()
-            toggleMenu()
-        }
     }
 
     private fun toggleMenu() {
         isExpanded = !isExpanded
         val visibility = if (isExpanded) View.VISIBLE else View.GONE
         
-        btnScreenshot?.visibility = visibility
         btnOpenOverlay?.visibility = visibility
         
         // Rotate icon

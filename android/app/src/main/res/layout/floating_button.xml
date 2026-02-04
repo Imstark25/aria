@@ -8,24 +8,6 @@
     android:clipToPadding="false"
     android:animateLayoutChanges="true">
 
-    <!-- Screenshot Button -->
-    <FrameLayout
-        android:id="@+id/btn_screenshot"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_floating_button"
-        android:padding="10dp"
-        android:visibility="gone"
-        android:elevation="6dp"
-        android:layout_marginBottom="12dp">
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_screenshot"
-            android:contentDescription="Screenshot"
-            android:tint="#FFFFFF" />
-    </FrameLayout>
-
     <!-- Volume Button (Open Overlay) -->
     <FrameLayout
         android:id="@+id/btn_open_overlay"
@@ -40,7 +22,7 @@
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:src="@drawable/ic_volume_up"
-            android:contentDescription="Open Overlay"
+            android:contentDescription="Volume Control"
             android:tint="#FFFFFF" />
     </FrameLayout>
 

@@ -49,17 +49,7 @@ class VolumeOverlayService : Service() {
     private lateinit var removeParams: WindowManager.LayoutParams
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "ACTION_SCREENSHOT_PERMISSION_GRANTED") {
-             val resultCode = intent.getIntExtra("resultCode", 0)
-             val data = intent.getParcelableExtra<Intent>("data")
-             
-             if (resultCode == Activity.RESULT_OK && data != null) {
-                 // Wait a tiny bit more for the button to disappear completely if waiting for anim
-                 Handler(Looper.getMainLooper()).postDelayed({
-                     startCapture(resultCode, data)
-                 }, 300)
-             }
-        }
+        // Screenshot functionality removed
         return START_STICKY
     }
 
@@ -254,7 +244,6 @@ class VolumeOverlayService : Service() {
                 buttonParams, 
                 windowManager, 
                 onOpenOverlay = { showOverlay() },
-                onScreenshot = { takeScreenshot() },
                 onDragStart = {
                     removeView?.visibility = View.VISIBLE
                 },
