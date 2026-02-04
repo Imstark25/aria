@@ -45,6 +45,36 @@ app.post('/create-subscription', async (req, res) => {
     }
 });
 
+// New endpoint for creating orders (works better with UPI on mobile)
+app.post('/create-order', async (req, res) => {
+    try {
+        const amount = req.body.amount || 50000; // Amount in paise (default 500 INR)
+        
+        // Create an Order (better for one-time payments including UPI)
+        const order = await razorpay.orders.create({
+            amount: amount,
+            currency: "INR",
+            receipt: "receipt_" + Date.now(),
+            notes: {
+                product: "Premium Subscription",
+                description: "Monthly premium access"
+            },
+            // Payment capture settings
+            payment_capture: 1 // Auto capture payment
+        });
+
+        res.json({
+            order_id: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key_id: process.env.RAZORPAY_KEY_ID
+        });
+    } catch (error) {
+        console.error("Error creating order:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('Razorpay Server is Running');
 });
