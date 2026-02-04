@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'config.dart';
 
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
@@ -37,8 +38,74 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
+    String errorMessage = "Error: ${response.code} - ${response.message}";
+    
+    // Check if user cancelled
+    if (response.code == Razorpay.PAYMENT_CANCELLED) {
+      errorMessage = "Payment cancelled by user";
+    }
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: ${response.code} - ${response.message}")),
+      SnackBar(
+        content: Text(errorMessage),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  void _showPaymentInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("UPI Test Mode Info"),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "⚠️ Razorpay Test Mode Limitations:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text("• UPI is NOT fully supported in test mode"),
+              Text("• Use Cards, Netbanking, or Wallets for testing"),
+              SizedBox(height: 15),
+              Text(
+                "Test Cards (All work):",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 5),
+              Text("Card: 4111 1111 1111 1111"),
+              Text("CVV: Any 3 digits"),
+              Text("Expiry: Any future date"),
+              SizedBox(height: 15),
+              Text(
+                "For Real UPI Testing:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 5),
+              Text("1. Switch to Live Mode in Razorpay Dashboard"),
+              Text("2. Complete KYC verification"),
+              Text("3. Use actual UPI ID"),
+              SizedBox(height: 15),
+              Text(
+                "To Cancel Payment:",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 5),
+              Text("• Tap the back button in payment screen"),
+              Text("• Or use device back button"),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -52,28 +119,38 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Call your Node.js backend to create order/subscription
-      // Use 10.0.2.2 for Android Emulator to access localhost of the host machine
-      // Use localhost or your IP if running on real device/web
+      // Call your Node.js backend to create order
+      // URL is configured in lib/config.dart
+      // Change it there when switching between emulator and real device
+      
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/create-subscription'), 
-        // Note: For real device, replace 10.0.2.2 with your PC's IP address (e.g. 192.168.1.5)
+        Uri.parse(AppConfig.createOrderUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'amount': 50000}), // 500 INR in paise
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
+        // Configure options for order-based payment with UPI support
         var options = {
           'key': data['key_id'],
-          'subscription_id': data['subscription_id'],
-          'name': 'Demo App',
-          'description': 'Monthly Premium Subscription',
+          'amount': data['amount'], // Amount in paise
+          'currency': data['currency'],
+          'order_id': data['order_id'],
+          'name': 'Volume Master',
+          'description': 'Premium Subscription - Monthly',
           'prefill': {
             'contact': '9123456789',
             'email': 'test@razorpay.com'
           },
           'theme': {
             'color': '#FF6B6B' 
+          },
+          // Allow retry on payment failure
+          'retry': {
+            'enabled': true,
+            'max_count': 3
           }
         };
 
@@ -167,7 +244,17 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                         : const Text("Subscribe Now", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                   const SizedBox(height: 15),
+                  const SizedBox(height: 10),
+                  // Info button
+                  TextButton.icon(
+                    onPressed: _showPaymentInfo,
+                    icon: const Icon(Icons.info_outline, color: Colors.white70, size: 18),
+                    label: const Text(
+                      "Payment Test Info & UPI Limitations",
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
                   const Text(
                     "Cancel anytime. Terms apply.",
                     style: TextStyle(color: Colors.white38, fontSize: 12),

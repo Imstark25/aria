@@ -5,20 +5,22 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:aria/main.dart';
 
 void main() {
-  testWidgets('Aria app smoke test', (WidgetTester tester) async {
+  testWidgets('Volume Master app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MaterialApp(home: AriaHomePage()));
+    await tester.pumpWidget(const MyApp());
 
     // Verify that the app title is present.
-    expect(find.text('Aria Volume Control'), findsWidgets);
+    expect(find.text('Volume Master'), findsOneWidget);
     
     // Verify that the start button is present.
     expect(find.text('Start Floating Button'), findsOneWidget);
+    
+    // Verify that the premium button is present.
+    expect(find.text('Go Premium'), findsOneWidget);
   });
 }
