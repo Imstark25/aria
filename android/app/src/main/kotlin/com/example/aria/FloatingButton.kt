@@ -21,21 +21,13 @@ class FloatingButton @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     private var bubbleView: View? = null
-    private var btnOpenOverlay: View? = null
     private var iconMain: View? = null
-    private var isExpanded = false
-    private var animator: AnimatorSet? = null
 
     init {
         LayoutInflater.from(context).inflate(R.layout.floating_button, this, true)
         bubbleView = findViewById(R.id.bubble_view)
-        btnOpenOverlay = findViewById(R.id.btn_open_overlay)
         iconMain = findViewById(R.id.icon_main)
-        
-        // Remove heavy breathing animation for better performance
     }
-
-    // Removed breathing animation to improve performance
 
     fun setupDragListener(
         params: WindowManager.LayoutParams, 
@@ -64,7 +56,7 @@ class FloatingButton @JvmOverloads constructor(
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!isDragging) {
-                        toggleMenu()
+                        onOpenOverlay()
                     }
                     onDragEnd(event.rawX, event.rawY)
                     true
@@ -92,27 +84,8 @@ class FloatingButton @JvmOverloads constructor(
                 else -> false
             }
         }
-
-        
-        // Setup internal click listeners
-        btnOpenOverlay?.setOnClickListener {
-            onOpenOverlay()
-            toggleMenu() // Close after action
-        }
-    }
-
-    private fun toggleMenu() {
-        isExpanded = !isExpanded
-        val visibility = if (isExpanded) View.VISIBLE else View.GONE
-        
-        btnOpenOverlay?.visibility = visibility
-        
-        // Quick rotate animation
-        iconMain?.animate()?.rotation(if (isExpanded) 180f else 0f)?.setDuration(150)?.start()
     }
     
     fun cleanup() {
-        animator?.cancel()
-        animator = null
     }
 }
