@@ -8,19 +8,12 @@
     app:cardElevation="8dp"
     app:cardBackgroundColor="@android:color/transparent">
 
-    <FrameLayout
+    <ImageView
+        android:id="@+id/icon_main"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/bg_main_button">
-        
-        <ImageView
-            android:id="@+id/icon_main"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_gravity="center"
-            android:src="@drawable/ic_volume_up"
-            android:tint="#FFFFFF"
-            android:contentDescription="Volume Control" />
-    </FrameLayout>
+        android:src="@drawable/floating_logo"
+        android:scaleType="centerCrop"
+        android:contentDescription="Volume Control" />
         
 </androidx.cardview.widget.CardView>
