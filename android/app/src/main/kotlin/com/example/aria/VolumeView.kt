@@ -64,6 +64,14 @@ class VolumeView @JvmOverloads constructor(
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
+        // Close button click handler
+        val closeButton = findViewById<android.widget.ImageView>(R.id.closeButton)
+        closeButton?.setOnClickListener {
+             if (context is VolumeOverlayService) {
+                 (context as VolumeOverlayService).showFloatingButton()
+             }
+        }
+
         // Touch outside -> close overlay (return to button)
         val background = findViewById<FrameLayout>(R.id.rootLayout)
         background?.setOnClickListener {
