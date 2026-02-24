@@ -179,7 +179,9 @@ class VolumeOverlayService : Service() {
             val notification = Notification.Builder(this, channelId)
                 .setContentTitle("Volume Master")
                 .setContentText("Overlay is running")
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setShowWhen(false)
+                .setOngoing(true)
                 .build()
 
             startForeground(1, notification)
